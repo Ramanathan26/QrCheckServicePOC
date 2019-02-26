@@ -1,56 +1,22 @@
 package com.example.demo.service;
 
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
-
-import com.example.demo.model.UserWorkRequestDetails;
+import com.example.demo.model.WorkRequest;
+import com.example.repository.WorkRequestRepository;
 
 public class RollingBucketWRService {
 
-	private UserWorkRequestDetails userWorkRequestDetails = null;
-	private List<UserWorkRequestDetails> userWorkRequestDetailsList = new ArrayList<>();
+	WorkRequestRepository wrRepo = new WorkRequestRepository();
+	private static int qrProcessedForCurrentBucket;
 
-	public void WorkRequestService(String workRequest) {
-		String status = null;
+	public void WorkRequestService(WorkRequest workRequest) {
+		boolean status = false;
 		int qrPercent = 0;
-		String workRequesttype = "wR1";
-		String user = "user1";
+		String workRequesttype = workRequest.getWorkRequestType();
+		String user = workRequest.getUser();
 		int bucketSize;
 		boolean qrOutput = false;
-		if (userWorkRequestDetailsList.size() != 0) {
-			for (UserWorkRequestDetails uWrInfo : userWorkRequestDetailsList) {
-
-				if (uWrInfo.getUser().equals(user) && uWrInfo.getWorkRequestType().equals(workRequesttype)) {
-					uWrInfo.setWorkRequestProcessedCount(uWrInfo.getWorkRequestProcessedCount() + 1);
-					uWrInfo.getWorkRequestProcessedCount();
-					userWorkRequestDetails = uWrInfo;
-					break;
-				}
-
-			}
-			if (userWorkRequestDetails == null) {
-				UserWorkRequestDetails uWr = new UserWorkRequestDetails(user, workRequesttype);
-				uWr.setWorkRequestProcessedCount(1);
-				userWorkRequestDetailsList.add(uWr);
-				uWr.getWorkRequestProcessedCount();
-				userWorkRequestDetails = uWr;
-			}
-		} else {
-			UserWorkRequestDetails uWr = new UserWorkRequestDetails(user, workRequesttype);
-			uWr.setWorkRequestProcessedCount(1);
-			userWorkRequestDetailsList.add(uWr);
-			uWr.getWorkRequestProcessedCount();
-			userWorkRequestDetails = uWr;
-		}
-
-		List<Integer> sample = userWorkRequestDetails.getWRSentTracker();
-		if (sample == null) {
-			System.out.println(sample);
-			sample = new ArrayList<Integer>();
-			userWorkRequestDetails.setWRSentTracker(sample);
-		}
 
 		try {
 
@@ -60,43 +26,28 @@ public class RollingBucketWRService {
 			p.load(fr);
 
 			bucketSize = Integer.parseInt(p.getProperty("bucketSize" + workRequesttype + user));
-			qrPercent = Integer.parseInt(p.getProperty("QRPercent" + workRequesttype + user));
+			qrPercent = wrRepo.getQrPercent(workRequest);
 
-			int workRequestCount = userWorkRequestDetails.getWorkRequestProcessedCount();
+			int totalProcessedCount = wrRepo.getTotalProcessedCount(workRequest);
 
-			System.out.println("BucketSize: " + bucketSize + " QRPercent: " + qrPercent);
+			if (totalProcessedCount >= bucketSize) {
 
-			qrOutput = isQRNeed(qrPercent, bucketSize, workRequestCount);
+				qrProcessedForCurrentBucket = wrRepo.getTotalQrProcessedRollingBucket(workRequest, bucketSize,
+						totalProcessedCount);
+
+			}
+
+			qrOutput = isQRNeed(qrPercent, bucketSize, totalProcessedCount);
 
 			if (qrOutput) {
-
-				sample.add(workRequestCount - 1, 1);
-
-				userWorkRequestDetails.setWRSentTracker(sample);
-
-				userWorkRequestDetails.setNumberOfWRSentToQRForCurrentBucket(
-						userWorkRequestDetails.getNumberOfWRSentToQRForCurrentBucket() + 1);
-				userWorkRequestDetails
-						.setTotalQrProcessedCounter(userWorkRequestDetails.getTotalQrProcessedCounter() + 1);
-				userWorkRequestDetails.setQrProcessedCounterForCurrentBucket(
-						userWorkRequestDetails.getQrProcessedCounterForCurrentBucket() + 1);
-				status = "QR Sent";
-				userWorkRequestDetails.setTotalWRsent(userWorkRequestDetails.getTotalWRsent() + 1);
-				updateWorkRequest(workRequest, status);
-				System.out.println("Total WR Sent To QR :" + userWorkRequestDetails.getTotalQrProcessedCounter());
+				status = true;
+				wrRepo.updateWorkRequest(workRequest, status);
 
 			}
 
 			else {
-
-				status = "Not Sent To QR";
-
-				sample.add(workRequestCount - 1, 0);
-
-				userWorkRequestDetails.setWRSentTracker(sample);
-
-				updateWorkRequest(workRequest, status);
-				System.out.println("Total WR Sent To QR :" + userWorkRequestDetails.getTotalQrProcessedCounter());
+				status = false;
+				wrRepo.updateWorkRequest(workRequest, status);
 			}
 
 		}
@@ -109,27 +60,13 @@ public class RollingBucketWRService {
 
 	public boolean isQRNeed(int qrPercent, int bucketSize, int workRequestCount) {
 
-		int Min_Value = Math.min(bucketSize, workRequestCount);
+		int minValue = Math.min(bucketSize, workRequestCount);
 
-		userWorkRequestDetails.setWRs_ToBe_Sent_To_QR((qrPercent * Min_Value) / 100);
+		int wrsToBeSentToQR = (qrPercent * minValue) / 100;
 
-		if (workRequestCount >= bucketSize) {
+		if (qrProcessedForCurrentBucket <= wrsToBeSentToQR) {
 
-			List<Integer> sample = userWorkRequestDetails.getWRSentTracker();
-			int index = workRequestCount - bucketSize;
-			Object x = sample.get((index));
-
-			if (x.equals(1)) {
-				userWorkRequestDetails.setNumberOfWRSentToQRForCurrentBucket(
-						userWorkRequestDetails.getNumberOfWRSentToQRForCurrentBucket() - 1);
-			}
-
-		}
-
-		if (userWorkRequestDetails.getNumberOfWRSentToQRForCurrentBucket() <= userWorkRequestDetails
-				.getWRs_ToBe_Sent_To_QR()) {
-
-			if ((ProbabilityGenerator(qrPercent)) == true) {
+			if ((probabilityGenerator(qrPercent)) == true) {
 
 				return true;
 
@@ -146,15 +83,10 @@ public class RollingBucketWRService {
 		}
 	}
 
-	public boolean ProbabilityGenerator(int qrPercent) {
+	public boolean probabilityGenerator(int qrPercent) {
 
 		return (Math.random() * 100) <= qrPercent;
 
-	}
-
-	public static void updateWorkRequest(String workRequest, String status) {
-
-		System.out.println("WorkRequest - " + workRequest + " Status -" + status);
 	}
 
 }

@@ -1,54 +1,25 @@
 package com.example.demo.service;
 
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
-
-import com.example.demo.model.UserWorkRequestInfo;
+import com.example.demo.model.WorkRequest;
+import com.example.repository.WorkRequestRepository;
 
 public class FixedBucketWRService {
 
-	UserWorkRequestInfo userWorkRequestInfo = null;
-	List<UserWorkRequestInfo> userWorkRequestInfoList = new ArrayList<>();
+	WorkRequestRepository wrRepo = new WorkRequestRepository();
+	int totalQrProcessedInCurrentBucket;
 
-	public void WorkRequestService(String workRequest) {
-		String status = null;
+	public void WorkRequestService(WorkRequest workRequest) {
+		boolean status = false;
 		int qrPercent = 0;
-		String workRequesttype = "wR1";
-		String user = "user1";
 		int workRequestProcessedCount = 0;
-
+		int totalProcessedInCurrentBucket = 0;
+		workRequestProcessedCount = wrRepo.getTotalProcessedCount(workRequest);
 		int bucketSize;
-		int totalProcessedInCurrentBucket;
+		int totalQrProcessedInCurrentBucket;
 		boolean qrOutput = false;
 		int qrToBeProcessedPerBucket = 0;
-
-		if (userWorkRequestInfoList.size() != 0) {
-			for (UserWorkRequestInfo uWrInfo : userWorkRequestInfoList) {
-
-				if (uWrInfo.getUser().equals(user) && uWrInfo.getWorkRequestType().equals(workRequesttype)) {
-					uWrInfo.setWorkRequestProcessedCount(uWrInfo.getWorkRequestProcessedCount() + 1);
-					workRequestProcessedCount = uWrInfo.getWorkRequestProcessedCount();
-					userWorkRequestInfo = uWrInfo;
-					break;
-				}
-
-			}
-			if (userWorkRequestInfo == null) {
-				UserWorkRequestInfo uWr = new UserWorkRequestInfo(user, workRequesttype);
-				uWr.setWorkRequestProcessedCount(1);
-				userWorkRequestInfoList.add(uWr);
-				workRequestProcessedCount = uWr.getWorkRequestProcessedCount();
-				userWorkRequestInfo = uWr;
-			}
-		} else {
-			UserWorkRequestInfo uWr = new UserWorkRequestInfo(user, workRequesttype);
-			uWr.setWorkRequestProcessedCount(1);
-			userWorkRequestInfoList.add(uWr);
-			workRequestProcessedCount = uWr.getWorkRequestProcessedCount();
-			userWorkRequestInfo = uWr;
-		}
 
 		try {
 			FileReader fr = new FileReader("application.properties");
@@ -56,54 +27,47 @@ public class FixedBucketWRService {
 			Properties p = new Properties();
 			p.load(fr);
 
-			bucketSize = Integer.parseInt(p.getProperty("bucketSize" + workRequesttype + user));
-			qrPercent = Integer.parseInt(p.getProperty("QRPercent" + workRequesttype + user));
+			bucketSize = Integer
+					.parseInt(p.getProperty("bucketSize" + workRequest.getWorkRequestType() + workRequest.getUser()));
 
-			System.out.println("\nBucket Size " + bucketSize);
-
+			qrPercent = wrRepo.getQrPercent(workRequest);
 			if (workRequestProcessedCount % bucketSize > 0) {
-				totalProcessedInCurrentBucket = Math.min(bucketSize, (workRequestProcessedCount % bucketSize));
+				totalProcessedInCurrentBucket = workRequestProcessedCount % bucketSize;
 			} else {
 				totalProcessedInCurrentBucket = bucketSize;
 			}
 
+			totalQrProcessedInCurrentBucket = wrRepo.getTotalQrProcessedInCurrentBucket(workRequest,
+					totalProcessedInCurrentBucket, workRequestProcessedCount);
+
 			qrToBeProcessedPerBucket = (qrPercent * bucketSize) / 100;
 
-			if ((qrToBeProcessedPerBucket - userWorkRequestInfo.getQrProcessedCounterForCurrentBucket()) != (bucketSize
+			if ((qrToBeProcessedPerBucket - totalQrProcessedInCurrentBucket) != (bucketSize
 					- (totalProcessedInCurrentBucket - 1))) {
-				if (qrToBeProcessedPerBucket > userWorkRequestInfo.getQrProcessedCounterForCurrentBucket()) {
+				if (qrToBeProcessedPerBucket > totalQrProcessedInCurrentBucket) {
 
 					qrOutput = isQRNeed(qrPercent, totalProcessedInCurrentBucket, qrToBeProcessedPerBucket);
 
 				}
 
 				if (qrOutput) {
-					userWorkRequestInfo
-							.setTotalQrProcessedCounter(userWorkRequestInfo.getTotalQrProcessedCounter() + 1);
-					userWorkRequestInfo.setQrProcessedCounterForCurrentBucket(
-							userWorkRequestInfo.getQrProcessedCounterForCurrentBucket() + 1);
-					status = "QR Sent";
-					updateWorkRequest(workRequest, status);
+
+					status = true;
+					wrRepo.updateWorkRequest(workRequest, status);
 				}
 
 				else {
 
-					status = "Not Sent To QR";
-					updateWorkRequest(workRequest, status);
+					status = false;
+					wrRepo.updateWorkRequest(workRequest, status);
 				}
 			} else {
 
-				userWorkRequestInfo.setQrProcessedCounterForCurrentBucket(
-						userWorkRequestInfo.getQrProcessedCounterForCurrentBucket() + 1);
-				status = "Auto Sent to QR";
-				updateWorkRequest(workRequest, status);
+				status = true;
+				wrRepo.updateWorkRequest(workRequest, status);
 			}
 
 			if (workRequestProcessedCount % bucketSize == 0) {
-				userWorkRequestInfo.setQrProcessedCounterForCurrentBucket(0);
-				totalProcessedInCurrentBucket = 0;
-				userWorkRequestInfo.setTotalProcessedInCurrentBucket(0);
-
 				System.out.println("\\*============================================*\\");
 			}
 
@@ -120,15 +84,15 @@ public class FixedBucketWRService {
 		int qrToBeProcessedFromCurrentBucketPosition = (qrPercent * totalProcessedInCurrentBucket) / 100;
 
 		if (qrToBeProcessedFromCurrentBucketPosition == 0 && totalProcessedInCurrentBucket > 0) {
-			probabilityResult = ProbabilityGenerator(qrPercent);
+			probabilityResult = probabilityGenerator(qrPercent);
 		}
 
 		else if (qrToBeProcessedFromCurrentBucketPosition > 0
 				&& qrToBeProcessedFromCurrentBucketPosition <= qrToBeProcessedPerBucket)
 
 		{
-			if (userWorkRequestInfo.getQrProcessedCounterForCurrentBucket() < qrToBeProcessedPerBucket) {
-				probabilityResult = ProbabilityGenerator(qrPercent);
+			if (totalQrProcessedInCurrentBucket < qrToBeProcessedPerBucket) {
+				probabilityResult = probabilityGenerator(qrPercent);
 			}
 		}
 		if (probabilityResult == 1) {
@@ -137,7 +101,7 @@ public class FixedBucketWRService {
 		return result;
 	}
 
-	public int ProbabilityGenerator(int qrPercent) {
+	public int probabilityGenerator(int qrPercent) {
 		int probResult = 0;
 		int randomNumber = (int) (Math.random() * 100);
 		if (randomNumber <= qrPercent) {
@@ -148,9 +112,4 @@ public class FixedBucketWRService {
 		return probResult;
 	}
 
-	public static void updateWorkRequest(String workRequest, String status) {
-
-		System.out.println("WorkRequest - " + workRequest + " Status - " + status);
-
-	}
 }
