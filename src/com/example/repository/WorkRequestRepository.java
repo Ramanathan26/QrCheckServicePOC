@@ -11,7 +11,7 @@ public class WorkRequestRepository {
 	private static HashMap<String, HashMap<String, List<WorkRequest>>> userWorkRequestMap = new HashMap<>();
 	private static HashMap<String, HashMap<String, Integer>> userQrMap = new HashMap<>();
 
-	public void saveWorkRequest(WorkRequest workRequest) {
+	public static void saveWorkRequest(WorkRequest workRequest) {
 
 		String user = workRequest.getUser();
 		String workRequestType = workRequest.getWorkRequestType();
@@ -26,8 +26,6 @@ public class WorkRequestRepository {
 				wrMap.put(workRequestType, wrList);
 
 				userWorkRequestMap.put(user, wrMap);
-
-				// userWorkRequestMap.get(user).put(workRequestType, workRequestList);
 			}
 		} else {
 			List<WorkRequest> wrList = new ArrayList<>();
@@ -39,7 +37,7 @@ public class WorkRequestRepository {
 		}
 	}
 
-	public int getTotalProcessedCount(WorkRequest workRequest) {
+	public static int getTotalProcessedCount(WorkRequest workRequest) {
 		String user = workRequest.getUser();
 		String workRequestType = workRequest.getWorkRequestType();
 
@@ -47,7 +45,7 @@ public class WorkRequestRepository {
 		return size;
 	}
 
-	public int getQrPercent(WorkRequest workRequest) {
+	public static int getQrPercent(WorkRequest workRequest) {
 
 		String user = workRequest.getUser();
 		String workRequestType = workRequest.getWorkRequestType();
@@ -55,7 +53,7 @@ public class WorkRequestRepository {
 		return qrPercent;
 	}
 
-	public int getTotalQrProcessedRollingBucket(WorkRequest workRequest, int bucketSize, int totalProcessedCount) {
+	public static int getTotalQrProcessedRollingBucket(WorkRequest workRequest, int bucketSize, int totalProcessedCount) {
 
 		String user = workRequest.getUser();
 		String workRequestType = workRequest.getWorkRequestType();
@@ -75,7 +73,7 @@ public class WorkRequestRepository {
 		return qrCount;
 	}
 
-	public int getTotalQrProcessedInCurrentBucket(WorkRequest workRequest, int currentPosition,
+	public static int getTotalQrProcessedInCurrentBucket(WorkRequest workRequest, int currentPosition,
 			int totalProcessedCount) {
 		String user = workRequest.getUser();
 		String workRequestType = workRequest.getWorkRequestType();
@@ -97,7 +95,7 @@ public class WorkRequestRepository {
 		return qrCount;
 	}
 
-	public void updateWorkRequest(WorkRequest workRequest, boolean status) {
+	public static void updateWorkRequest(WorkRequest workRequest, boolean status) {
 		String user = workRequest.getUser();
 		String workRequestType = workRequest.getWorkRequestType();
 
@@ -109,10 +107,10 @@ public class WorkRequestRepository {
 
 	}
 
-	public void setUp(String user, String workRequestType) {
+	public static void setUp(String user, String workRequestType) {
 
 		HashMap<String, Integer> wrQrMap = new HashMap<>();
-		wrQrMap.put(workRequestType, 70);
+		wrQrMap.put(workRequestType, 50);
 		userQrMap.put(user, wrQrMap);
 	}
 }

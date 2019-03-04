@@ -8,9 +8,8 @@ import com.example.repository.WorkRequestRepository;
 
 public class VaryingBucketWRService {
 
-	WorkRequestRepository wrRepo = new WorkRequestRepository();
 
-	public void WorkRequestService(WorkRequest workRequest) {
+	public void workRequestService(WorkRequest workRequest) {
 		boolean status = false;
 		int qrPercent;
 		String workRequestType = workRequest.getWorkRequestType();
@@ -31,11 +30,11 @@ public class VaryingBucketWRService {
 			Properties p = new Properties();
 			p.load(fr);
 
-			qrPercent = wrRepo.getQrPercent(workRequest);
+			qrPercent = WorkRequestRepository.getQrPercent(workRequest);
 			bucketSize = Integer.parseInt(p.getProperty("bucketSize" + workRequestType + user));
 
 			qrToBeProcessedPerBucket = (qrPercent * bucketSize) / 100;
-			workRequestProcessedCount = wrRepo.getTotalProcessedCount(workRequest);
+			workRequestProcessedCount = WorkRequestRepository.getTotalProcessedCount(workRequest);
 
 			if (workRequestProcessedCount % bucketSize > 0) {
 				totalProcessedInCurrentBucket = workRequestProcessedCount % bucketSize;
@@ -43,7 +42,7 @@ public class VaryingBucketWRService {
 				totalProcessedInCurrentBucket = bucketSize;
 			}
 
-			totalQrProcessedInCurrentBucket = wrRepo.getTotalQrProcessedInCurrentBucket(workRequest,
+			totalQrProcessedInCurrentBucket = WorkRequestRepository.getTotalQrProcessedInCurrentBucket(workRequest,
 					totalProcessedInCurrentBucket, workRequestProcessedCount);
 
 			wrsToBeSentToQr = qrToBeProcessedPerBucket - totalQrProcessedInCurrentBucket;
@@ -59,17 +58,17 @@ public class VaryingBucketWRService {
 				if (qrOutput) {
 
 					status = true;
-					wrRepo.updateWorkRequest(workRequest, status);
+					WorkRequestRepository.updateWorkRequest(workRequest, status);
 				}
 
 				else {
 
 					status = false;
-					wrRepo.updateWorkRequest(workRequest, status);
+					WorkRequestRepository.updateWorkRequest(workRequest, status);
 				}
 			} else {
 				status = true;
-				wrRepo.updateWorkRequest(workRequest, status);
+				WorkRequestRepository.updateWorkRequest(workRequest, status);
 			}
 
 			if (workRequestProcessedCount % bucketSize == 0) {

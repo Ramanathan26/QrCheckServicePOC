@@ -23,43 +23,41 @@ public class QrCheckApplication {
 		switch (approach) {
 		case 1: {
 			FixedBucketWRService wr = new FixedBucketWRService();
-			WorkRequestRepository wrRepo = new WorkRequestRepository();
-			wrRepo.setUp("user1", "WR1");
+			
+			WorkRequestRepository.setUp("user1", "WR1");
 			for (int i = 1; i <= 100; i++) {
 				String user = "user1";
 				String workRequestType = "WR1";
 				WorkRequest workRequest = new WorkRequest(i, user, workRequestType);
-
-				wrRepo.saveWorkRequest(workRequest);
-				wr.WorkRequestService(workRequest);
+				WorkRequestRepository.saveWorkRequest(workRequest);
+				wr.workRequestService(workRequest);
 			}
 			break;
 		}
 			
 		case 2: {
 			VaryingBucketWRService wr = new VaryingBucketWRService();
-			WorkRequestRepository wrRepo = new WorkRequestRepository();
-			wrRepo.setUp("user2", "WR2");
+			WorkRequestRepository.setUp("user2", "WR2");
 			for (int i = 1; i <= 100; i++) {
 				String user = "user2";
 				String workRequestType = "WR2";
 				WorkRequest workRequest = new WorkRequest(i, user, workRequestType);
-				wrRepo.saveWorkRequest(workRequest);
-				wr.WorkRequestService(workRequest);
+				WorkRequestRepository.saveWorkRequest(workRequest);
+				wr.workRequestService(workRequest);
 			}
 			break;
 		}
 			
 		case 3: {
 			RollingBucketWRService wr = new RollingBucketWRService();
-			WorkRequestRepository wrRepo = new WorkRequestRepository();
-			wrRepo.setUp("user3", "WR3");
+			
+			WorkRequestRepository.setUp("user3", "WR3");
 			for (int i = 1; i <= 100; i++) {
 				String user = "user3";
 				String workRequestType = "WR3";
 				WorkRequest workRequest = new WorkRequest(i, user, workRequestType);
-				wrRepo.saveWorkRequest(workRequest);
-				wr.WorkRequestService(workRequest);
+				WorkRequestRepository.saveWorkRequest(workRequest);
+				wr.workRequestService(workRequest);
 			}
 break;
 		}

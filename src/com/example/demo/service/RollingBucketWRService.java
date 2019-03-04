@@ -2,15 +2,15 @@ package com.example.demo.service;
 
 import java.io.FileReader;
 import java.util.Properties;
+
 import com.example.demo.model.WorkRequest;
 import com.example.repository.WorkRequestRepository;
 
 public class RollingBucketWRService {
 
-	WorkRequestRepository wrRepo = new WorkRequestRepository();
 	private static int qrProcessedForCurrentBucket;
 
-	public void WorkRequestService(WorkRequest workRequest) {
+	public void workRequestService(WorkRequest workRequest) {
 		boolean status = false;
 		int qrPercent = 0;
 		String workRequesttype = workRequest.getWorkRequestType();
@@ -26,13 +26,13 @@ public class RollingBucketWRService {
 			p.load(fr);
 
 			bucketSize = Integer.parseInt(p.getProperty("bucketSize" + workRequesttype + user));
-			qrPercent = wrRepo.getQrPercent(workRequest);
+			qrPercent = WorkRequestRepository.getQrPercent(workRequest);
 
-			int totalProcessedCount = wrRepo.getTotalProcessedCount(workRequest);
+			int totalProcessedCount = WorkRequestRepository.getTotalProcessedCount(workRequest);
 
 			if (totalProcessedCount >= bucketSize) {
 
-				qrProcessedForCurrentBucket = wrRepo.getTotalQrProcessedRollingBucket(workRequest, bucketSize,
+				qrProcessedForCurrentBucket = WorkRequestRepository.getTotalQrProcessedRollingBucket(workRequest, bucketSize,
 						totalProcessedCount);
 
 			}
@@ -41,13 +41,13 @@ public class RollingBucketWRService {
 
 			if (qrOutput) {
 				status = true;
-				wrRepo.updateWorkRequest(workRequest, status);
+				WorkRequestRepository.updateWorkRequest(workRequest, status);
 
 			}
 
 			else {
 				status = false;
-				wrRepo.updateWorkRequest(workRequest, status);
+				WorkRequestRepository.updateWorkRequest(workRequest, status);
 			}
 
 		}

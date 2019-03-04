@@ -3,23 +3,23 @@ package com.example.demo.model;
 public class WorkRequest {
 
 	private int workRequestId;
-	private String User;
+	private String user;
 	private String workRequestType;
 	private boolean isQrProcessed;
 
 	public WorkRequest(int workRequestId, String user, String workRequestType) {
 		super();
 		this.workRequestId = workRequestId;
-		User = user;
+		this.user = user;
 		this.workRequestType = workRequestType;
 	}
 
 	public String getUser() {
-		return User;
+		return user;
 	}
 
 	public void setUser(String user) {
-		User = user;
+		this.user = user;
 	}
 
 	public String getWorkRequestType() {

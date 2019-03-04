@@ -7,21 +7,19 @@ import com.example.repository.WorkRequestRepository;
 
 public class FixedBucketWRService {
 
-	WorkRequestRepository wrRepo = new WorkRequestRepository();
-	int totalQrProcessedInCurrentBucket;
 
-	public void WorkRequestService(WorkRequest workRequest) {
+	public void workRequestService(WorkRequest workRequest) {
+		int totalQrProcessedInCurrentBucket;
 		boolean status = false;
 		int qrPercent = 0;
 		int workRequestProcessedCount = 0;
 		int totalProcessedInCurrentBucket = 0;
-		workRequestProcessedCount = wrRepo.getTotalProcessedCount(workRequest);
 		int bucketSize;
-		int totalQrProcessedInCurrentBucket;
 		boolean qrOutput = false;
 		int qrToBeProcessedPerBucket = 0;
 
 		try {
+			
 			FileReader fr = new FileReader("application.properties");
 
 			Properties p = new Properties();
@@ -29,15 +27,15 @@ public class FixedBucketWRService {
 
 			bucketSize = Integer
 					.parseInt(p.getProperty("bucketSize" + workRequest.getWorkRequestType() + workRequest.getUser()));
-
-			qrPercent = wrRepo.getQrPercent(workRequest);
+			workRequestProcessedCount = WorkRequestRepository.getTotalProcessedCount(workRequest);
+			qrPercent = WorkRequestRepository.getQrPercent(workRequest);
 			if (workRequestProcessedCount % bucketSize > 0) {
 				totalProcessedInCurrentBucket = workRequestProcessedCount % bucketSize;
 			} else {
 				totalProcessedInCurrentBucket = bucketSize;
 			}
 
-			totalQrProcessedInCurrentBucket = wrRepo.getTotalQrProcessedInCurrentBucket(workRequest,
+			totalQrProcessedInCurrentBucket = WorkRequestRepository.getTotalQrProcessedInCurrentBucket(workRequest,
 					totalProcessedInCurrentBucket, workRequestProcessedCount);
 
 			qrToBeProcessedPerBucket = (qrPercent * bucketSize) / 100;
@@ -53,18 +51,18 @@ public class FixedBucketWRService {
 				if (qrOutput) {
 
 					status = true;
-					wrRepo.updateWorkRequest(workRequest, status);
+					WorkRequestRepository.updateWorkRequest(workRequest, status);
 				}
 
 				else {
 
 					status = false;
-					wrRepo.updateWorkRequest(workRequest, status);
+					WorkRequestRepository.updateWorkRequest(workRequest, status);
 				}
 			} else {
 
 				status = true;
-				wrRepo.updateWorkRequest(workRequest, status);
+				WorkRequestRepository.updateWorkRequest(workRequest, status);
 			}
 
 			if (workRequestProcessedCount % bucketSize == 0) {
@@ -83,18 +81,12 @@ public class FixedBucketWRService {
 		int probabilityResult = 0;
 		int qrToBeProcessedFromCurrentBucketPosition = (qrPercent * totalProcessedInCurrentBucket) / 100;
 
-		if (qrToBeProcessedFromCurrentBucketPosition == 0 && totalProcessedInCurrentBucket > 0) {
-			probabilityResult = probabilityGenerator(qrPercent);
-		}
-
-		else if (qrToBeProcessedFromCurrentBucketPosition > 0
+		if (qrToBeProcessedFromCurrentBucketPosition >= 0
 				&& qrToBeProcessedFromCurrentBucketPosition <= qrToBeProcessedPerBucket)
 
 		{
-			if (totalQrProcessedInCurrentBucket < qrToBeProcessedPerBucket) {
 				probabilityResult = probabilityGenerator(qrPercent);
 			}
-		}
 		if (probabilityResult == 1) {
 			result = true;
 		}
